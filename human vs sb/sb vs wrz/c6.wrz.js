@@ -6,19 +6,6 @@
     else
         factory(jQuery);
 }(function ($, undefined) {
-    if (!('indexOf' in Array.prototype)) {
-        Array.prototype.indexOf = function (find, i) {
-            if (i === undefined) i = 0;
-            if (i < 0) i += this.length;
-            if (i < 0) i = 0;
-            for (var n = this.length; i < n; i++) {
-                if (i in this && this[i] === find) {
-                    return i;
-                }
-            }
-            return -1;
-        }
-    }
     function timeZoneAbbreviation() {
         var abbreviation, date, formattedStr, i, len, matchedStrings, ref, str;
         date = (new Date()).toString();
@@ -43,8 +30,14 @@
         this.element = $(element);
         this.container = options.container || 'body';
         this.language = options.language || this.element.data('date-language') || 'en';
+        this.language = this.language in dates ? this.language : this.language.split('-')[0];
+        this.language = this.language in dates ? this.language : 'en';
+        this.isRTL = dates[this.language].rtl || false;
         this.formatType = options.formatType || this.element.data('format-type') || 'standard';
         this.format = DPGlobal.parseFormat(options.format || this.element.data('date-format') || dates[this.language].format || DPGlobal.getDefaultFormat(this.formatType, 'input'), this.formatType);
+        this.isInline = false;
+        this.isVisible = false;
+        this.isInput = this.element.is('input');
         this.fontAwesome = options.fontAwesome || this.element.data('font-awesome') || false;
         this.bootcssVer = options.bootcssVer || (this.isInput ? (this.element.is('.form-control') ? 3 : 2) : (this.bootcssVer = this.element.is('.input-group') ? 3 : 2));
         this.component = this.element.is('.date') ? (this.bootcssVer === 3 ? this.element.find('.input-group-addon .glyphicon-th, .input-group-addon .glyphicon-time, .input-group-addon .glyphicon-remove, .input-group-addon .glyphicon-calendar, .input-group-addon .fa-calendar, .input-group-addon .fa-clock-o').parent() : this.element.find('.add-on .icon-th, .add-on .icon-time, .add-on .icon-calendar, .add-on .fa-calendar, .add-on .fa-clock-o').parent()) : false;
@@ -53,7 +46,15 @@
         if (this.component && this.component.length === 0) {
             this.component = false;
         }
+        this.linkField = options.linkField || this.element.data('link-field') || false;
+        this.linkFormat = DPGlobal.parseFormat(options.linkFormat || this.element.data('link-format') || DPGlobal.getDefaultFormat(this.formatType, 'link'), this.formatType);
+        this.minuteStep = options.minuteStep || this.element.data('minute-step') || 5;
+        this.pickerPosition = options.pickerPosition || this.element.data('picker-position') || 'bottom-right';
+        this.showMeridian = options.showMeridian || this.element.data('show-meridian') || false;
+        this.initialDate = options.initialDate || new Date();
+        this.zIndex = options.zIndex || this.element.data('z-index') || undefined;
         this.title = typeof options.title === 'undefined' ? false : options.title;
+        this.timezone = options.timezone || timeZoneAbbreviation();
         this.icons = {
             leftArrow: this.fontAwesome ? 'fa-arrow-left' : (this.bootcssVer === 3 ? 'glyphicon-arrow-left' : 'icon-arrow-left'),
             rightArrow: this.fontAwesome ? 'fa-arrow-right' : (this.bootcssVer === 3 ? 'glyphicon-arrow-right' : 'icon-arrow-right')
@@ -65,6 +66,13 @@
                 that.hide();
             }
         }
+        this.formatViewType = 'datetime';
+        if ('formatViewType' in options) {
+            this.formatViewType = options.formatViewType;
+        } else if ('formatViewType' in this.element.data()) {
+            this.formatViewType = this.element.data('formatViewType');
+        }
+        this.minView = 0;
         if ('minView' in options) {
             this.minView = options.minView;
         } else if ('minView' in this.element.data()) {
@@ -78,21 +86,6 @@
             this.maxView = this.element.data('max-view');
         }
         this.maxView = DPGlobal.convertViewMode(this.maxView);
-        if ('wheelViewModeNavigation' in options) {
-            this.wheelViewModeNavigation = options.wheelViewModeNavigation;
-        } else if ('wheelViewModeNavigation' in this.element.data()) {
-            this.wheelViewModeNavigation = this.element.data('view-mode-wheel-navigation');
-        }
-        if ('wheelViewModeNavigationInverseDirection' in options) {
-            this.wheelViewModeNavigationInverseDirection = options.wheelViewModeNavigationInverseDirection;
-        } else if ('wheelViewModeNavigationInverseDirection' in this.element.data()) {
-            this.wheelViewModeNavigationInverseDirection = this.element.data('view-mode-wheel-navigation-inverse-dir');
-        }
-        if ('wheelViewModeNavigationDelay' in options) {
-            this.wheelViewModeNavigationDelay = options.wheelViewModeNavigationDelay;
-        } else if ('wheelViewModeNavigationDelay' in this.element.data()) {
-            this.wheelViewModeNavigationDelay = this.element.data('view-mode-wheel-navigation-delay');
-        }
         this.startViewMode = 2;
         if ('startView' in options) {
             this.startViewMode = options.startView;
@@ -108,6 +101,7 @@
             this.viewSelect = this.element.data('view-select');
         }
         this.viewSelect = DPGlobal.convertViewMode(this.viewSelect);
+        this.forceParse = true;
         if ('forceParse' in options) {
             this.forceParse = options.forceParse;
         } else if ('dateForceParse' in this.element.data()) {
@@ -134,7 +128,13 @@
         } else {
             this.picker.addClass('datetimepicker-dropdown-' + this.pickerPosition + ' dropdown-menu');
         }
+        if (this.isRTL) {
+            this.picker.addClass('datetimepicker-rtl');
+            var selector = this.bootcssVer === 3 ? '.prev span, .next span' : '.prev i, .next i';
+            this.picker.find(selector).toggleClass(this.icons.leftArrow + ' ' + this.icons.rightArrow);
+        }
         $(document).on('mousedown touchend', this.clickedOutside);
+        this.autoclose = false;
         if ('autoclose' in options) {
             this.autoclose = options.autoclose;
         } else if ('dateAutoclose' in this.element.data()) {
@@ -159,27 +159,6 @@
                 render = [render];
             }
             var res = ['day'];
-            return res.concat((render ? render : []));
-        };
-        this.onRenderHour = function (date) {
-            var render = (options.onRenderHour || function () { return []; })(date);
-            var res = ['hour'];
-            if (typeof render === 'string') {
-                render = [render];
-            }
-            return res.concat((render ? render : []));
-        };
-        this.onRenderMinute = function (date) {
-            var render = (options.onRenderMinute || function () { return []; })(date);
-            var res = ['minute'];
-            if (typeof render === 'string') {
-                render = [render];
-            }
-            if (date < this.startDate || date > this.endDate) {
-                res.push('disabled');
-            } else if (Math.floor(this.date.getUTCMinutes() / this.minuteStep) === Math.floor(date.getUTCMinutes() / this.minuteStep)) {
-                res.push('active');
-            }
             return res.concat((render ? render : []));
         };
         this.onRenderYear = function (date) {
@@ -229,7 +208,16 @@
         _events: [],
         _attachEvents: function () {
             this._detachEvents();
-            if (this.component && this.hasInput) {
+            if (this.isInput) {
+                this._events = [
+                    [this.element, {
+                        focus: $.proxy(this.show, this),
+                        keyup: $.proxy(this.update, this),
+                        keydown: $.proxy(this.keydown, this)
+                    }]
+                ];
+            }
+            else if (this.component && this.hasInput) {
                 this._events = [
                     [this.element.find('input'), {
                         focus: $.proxy(this.show, this),
@@ -246,6 +234,16 @@
                         { click: $.proxy(this.reset, this) }
                     ]);
                 }
+            }
+            else if (this.element.is('div')) {
+                this.isInline = true;
+            }
+            else {
+                this._events = [
+                    [this.element, {
+                        click: $.proxy(this.show, this)
+                    }]
+                ];
             }
             for (var i = 0, el, ev; i < this._events.length; i++) {
                 el = this._events[i][0];
@@ -319,6 +317,42 @@
         },
         getUTCDate: function () {
             return this.date;
+        },
+        getInitialDate: function () {
+            return this.initialDate
+        },
+        setInitialDate: function (initialDate) {
+            this.initialDate = initialDate;
+        },
+        setDate: function (d) {
+            this.setUTCDate(new Date(d.getTime() - (d.getTimezoneOffset() * 60000)));
+        },
+        setUTCDate: function (d) {
+            if (d >= this.startDate && d <= this.endDate) {
+                this.date = d;
+                this.setValue();
+                this.viewDate = this.date;
+                this.fill();
+            } else {
+                this.element.trigger({
+                    type: 'outOfRange',
+                    date: d,
+                    startDate: this.startDate,
+                    endDate: this.endDate
+                });
+            }
+        },
+        setFormat: function (format) {
+            this.format = DPGlobal.parseFormat(format, this.formatType);
+            var element;
+            if (this.isInput) {
+                element = this.element;
+            } else if (this.component) {
+                element = this.element.find('input');
+            }
+            if (element && element.val()) {
+                this.setValue();
+            }
         },
         setValue: function () {
             var formatted = this.getFormattedDate();
@@ -511,6 +545,7 @@
                 year = d.getUTCFullYear(),
                 month = d.getUTCMonth(),
                 dayMonth = d.getUTCDate(),
+                hours = d.getUTCHours(),
                 startYear = this.startDate.getUTCFullYear(),
                 startMonth = this.startDate.getUTCMonth(),
                 endYear = this.endDate.getUTCFullYear(),
@@ -521,6 +556,9 @@
             this.picker.find('tfoot th.today')
                 .text(dates[this.language].today || dates['en'].today)
                 .toggle(this.todayBtn !== false);
+            this.picker.find('tfoot th.clear')
+                .text(dates[this.language].clear || dates['en'].clear)
+                .toggle(this.clearBtn !== false);
             this.updateNavArrows();
             this.fillMonths();
             var prevMonth = UTCDate(year, month - 1, 28, 0, 0, 0, 0),
@@ -604,6 +642,51 @@
                 month = d.getUTCMonth(),
                 day = d.getUTCDate(),
                 hour = d.getUTCHours();
+            switch (this.viewMode) {
+                case 1:
+                    if (year <= this.startDate.getUTCFullYear()
+                        && month <= this.startDate.getUTCMonth()
+                        && day <= this.startDate.getUTCDate()) {
+                        this.picker.find('.prev').css({ visibility: 'hidden' });
+                    } else {
+                        this.picker.find('.prev').css({ visibility: 'visible' });
+                    }
+                    if (year >= this.endDate.getUTCFullYear()
+                        && month >= this.endDate.getUTCMonth()
+                        && day >= this.endDate.getUTCDate()) {
+                        this.picker.find('.next').css({ visibility: 'hidden' });
+                    } else {
+                        this.picker.find('.next').css({ visibility: 'visible' });
+                    }
+                    break;
+                case 2:
+                    if (year <= this.startDate.getUTCFullYear()
+                        && month <= this.startDate.getUTCMonth()) {
+                        this.picker.find('.prev').css({ visibility: 'hidden' });
+                    } else {
+                        this.picker.find('.prev').css({ visibility: 'visible' });
+                    }
+                    if (year >= this.endDate.getUTCFullYear()
+                        && month >= this.endDate.getUTCMonth()) {
+                        this.picker.find('.next').css({ visibility: 'hidden' });
+                    } else {
+                        this.picker.find('.next').css({ visibility: 'visible' });
+                    }
+                    break;
+                case 3:
+                case 4:
+                    if (year <= this.startDate.getUTCFullYear()) {
+                        this.picker.find('.prev').css({ visibility: 'hidden' });
+                    } else {
+                        this.picker.find('.prev').css({ visibility: 'visible' });
+                    }
+                    if (year >= this.endDate.getUTCFullYear()) {
+                        this.picker.find('.next').css({ visibility: 'hidden' });
+                    } else {
+                        this.picker.find('.next').css({ visibility: 'visible' });
+                    }
+                    break;
+            }
         },
         click: function (e) {
             e.stopPropagation();
@@ -613,6 +696,15 @@
                 target = $(target).parent().closest('span, td, th, legend');
             }
             if (target.length === 1) {
+                if (target.is('.disabled')) {
+                    this.element.trigger({
+                        type: 'outOfRange',
+                        date: this.viewDate,
+                        startDate: this.startDate,
+                        endDate: this.endDate
+                    });
+                    return;
+                }
                 switch (target[0].nodeName.toLowerCase()) {
                     case 'th':
                         switch (target[0].className) {
@@ -623,9 +715,6 @@
                             case 'next':
                                 var dir = DPGlobal.modes[this.viewMode].navStep * (target[0].className === 'prev' ? -1 : 1);
                                 switch (this.viewMode) {
-                                    case 1:
-                                        this.viewDate = this.moveDate(this.viewDate, dir);
-                                        break;
                                     case 2:
                                         this.viewDate = this.moveMonth(this.viewDate, dir);
                                         break;
@@ -641,6 +730,12 @@
                                     startDate: this.startDate,
                                     endDate: this.endDate
                                 });
+                                break;
+                            case 'clear':
+                                this.reset();
+                                if (this.autoclose) {
+                                    this.hide();
+                                }
                                 break;
                             case 'today':
                                 var date = new Date();
@@ -661,7 +756,10 @@
                         if (!target.is('.disabled')) {
                             var year = this.viewDate.getUTCFullYear(),
                                 month = this.viewDate.getUTCMonth(),
-                                day = this.viewDate.getUTCDate();
+                                day = this.viewDate.getUTCDate(),
+                                hours = this.viewDate.getUTCHours(),
+                                minutes = this.viewDate.getUTCMinutes(),
+                                seconds = this.viewDate.getUTCSeconds();
                             if (target.is('.month')) {
                                 this.viewDate.setUTCDate(1);
                                 month = target.parent().find('span').index(target);
@@ -672,7 +770,7 @@
                                     date: this.viewDate
                                 });
                                 if (this.viewSelect >= 3) {
-                                    this._setDate(UTCDate(year, month, day, 0));
+                                    this._setDate(UTCDate(year, month, day, hours, minutes, seconds, 0));
                                 }
                             } else if (target.is('.year')) {
                                 this.viewDate.setUTCDate(1);
@@ -683,7 +781,7 @@
                                     date: this.viewDate
                                 });
                                 if (this.viewSelect >= 4) {
-                                    this._setDate(UTCDate(year, month, day, 0));
+                                    this._setDate(UTCDate(year, month, day, hours, minutes, seconds, 0));
                                 }
                             }
                             if (this.viewMode !== 0) {
@@ -731,11 +829,14 @@
                                 date: this.viewDate
                             });
                             if (this.viewSelect >= 2) {
-                                this._setDate(UTCDate(year, month, day, 0));
+                                this._setDate(UTCDate(year, month, day, hours, minutes, seconds, 0));
                             }
                         }
+                        var date = new Date();
+                        date = UTCDate(year, month, day);
                         var oldViewMode = this.viewMode;
-                        this.showMode(-1);
+                        this.showMode(0);
+                        this._setDate(date);
                         this.fill();
                         if (oldViewMode === this.viewMode && this.autoclose) {
                             this.hide();
@@ -752,7 +853,7 @@
             this.fill();
             this.setValue();
             var element;
-            if (this.isInput) { //
+            if (this.isInput) {
                 element = this.element;
             } else if (this.component) {
                 element = this.element.find('input');
@@ -835,6 +936,10 @@
                     return 'year';
                 case 2:
                     return 'month';
+                case 1:
+                    return 'day';
+                case 0:
+                    return 'hour';
             }
         }
     };
@@ -918,6 +1023,11 @@
                     return 'yyyy-mm-dd hh:ii';
                 else
                     return 'yyyy-mm-dd hh:ii:ss';
+            } else if (type === 'php') {
+                if (field === 'input')
+                    return 'Y-m-d H:i';
+                else
+                    return 'Y-m-d H:i:s';
             } else {
                 throw new Error('Invalid format type.');
             }
@@ -925,6 +1035,8 @@
         validParts: function (type) {
             if (type === 'standard') {
                 return /t|hh?|HH?|p|P|z|Z|ii?|ss?|dd?|DD?|mm?|MM?|yy(?:yy)?/g;
+            } else if (type === 'php') {
+                return /[dDjlNwzFmMnStyYaABgGhHis]/g;
             } else {
                 throw new Error('Invalid format type.');
             }
@@ -1099,8 +1211,10 @@
                     d: date.getUTCDate(),
                     D: dates[language].daysShort[date.getUTCDay()],
                     DD: dates[language].days[date.getUTCDay()],
+                    z: timezone
                 };
                 val.dd = (val.d < 10 ? '0' : '') + val.d;
+                val.mm = (val.m < 10 ? '0' : '') + val.m;
             } else {
                 throw new Error('Invalid format type.');
             }
@@ -1119,6 +1233,10 @@
         },
         convertViewMode: function (viewMode) {
             switch (viewMode) {
+                case 4:
+                case 'decade':
+                    viewMode = 4;
+                    break;
                 case 3:
                 case 'year':
                     viewMode = 3;
@@ -1131,7 +1249,12 @@
                 case 'day':
                     viewMode = 1;
                     break;
-            }            return viewMode;
+                case 0:
+                case 'hour':
+                    viewMode = 0;
+                    break;
+            }
+            return viewMode;
         },
         headTemplateV3: '<thead>' +
             '<tr>' +
@@ -1147,20 +1270,6 @@
             '</tfoot>'
     };
     DPGlobal.templateV3 = '<div class="datetimepicker">' +
-        '<div class="datetimepicker-minutes">' +
-        '<table class=" table-condensed">' +
-        DPGlobal.headTemplateV3 +
-        DPGlobal.contTemplate +
-        DPGlobal.footTemplate +
-        '</table>' +
-        '</div>' +
-        '<div class="datetimepicker-hours">' +
-        '<table class=" table-condensed">' +
-        DPGlobal.headTemplateV3 +
-        DPGlobal.contTemplate +
-        DPGlobal.footTemplate +
-        '</table>' +
-        '</div>' +
         '<div class="datetimepicker-days">' +
         '<table class=" table-condensed">' +
         DPGlobal.headTemplateV3 +
@@ -1183,4 +1292,22 @@
         '</table>' +
         '</div>' +
         '</div>';
+    $.fn.datetimepicker.DPGlobal = DPGlobal;
+    $.fn.datetimepicker.noConflict = function () {
+        $.fn.datetimepicker = old;
+        return this;
+    };
+    $(document).on(
+        'focus.datetimepicker.data-api click.datetimepicker.data-api',
+        '[data-provide="datetimepicker"]',
+        function (e) {
+            var $this = $(this);
+            if ($this.data('datetimepicker')) return;
+            e.preventDefault();
+            $this.datetimepicker('show');
+        }
+    );
+    $(function () {
+        $('[data-provide="datetimepicker-inline"]').datetimepicker();
+    });
 }));
