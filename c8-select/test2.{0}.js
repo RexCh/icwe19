@@ -1,26 +1,11 @@
-/*!
-* Select2 4.0.6-rc.1
-* https://select2.github.io
-*
-* Released under the MIT license
-* https://github.com/select2/select2/blob/master/LICENSE.md
-*/
 ;(function (factory) {
     if (typeof define === 'function' && define.amd) {
-        // AMD. Register as an anonymous module.
     } else if (typeof module === 'object' && module.exports) {
-        // Node/CommonJS
     } else {
-        // Browser globals
         factory(jQuery);
     }
 }(function (jQuery) {
-    // This is needed so we can catch the AMD loader configuration and use it
-    // The inner file should be wrapped (by `banner.start.js`) in a function that
-    // returns the AMD loader references.
     var S2 = (function () {
-        // Restore the Select2 AMD loader so it can be used
-        // Needed mostly in the language files, where the loader is not inserted
         var S2;
         (function () {
             if (!S2 || !S2.requirejs) {
@@ -41,8 +26,6 @@
                     function hasProp(obj, prop) {
                         return hasOwn.call(obj, prop);
                     }
-                    /**
-                     */
                     function normalize(name, baseName) {
                         var nameParts, nameSegment, mapValue, foundMap, lastIndex,
                             foundI, foundStarMap, starI, i, j, part, normalizedBaseParts,
@@ -52,11 +35,6 @@
                         if (name) {
                             name = name.split('/');
                             if (name[0].charAt(0) === '.' && baseParts) {
-                                //Convert baseName to array, and lop off the last part,
-                                //so that . matches that 'directory' and not name of the baseName's
-                                //module. For instance, baseName of 'one/two/three', maps to
-                                //'one/two/three.js', but we want the directory, 'one/two' for
-                                //this normalization.
                                 normalizedBaseParts = baseParts.slice(0, baseParts.length - 1);
                                 name = normalizedBaseParts.concat(name);
                             }
@@ -65,11 +43,6 @@
                                 if (part === '.') {
                                     name.splice(i, 1);
                                 } else if (part === '..') {
-                                    // If at the start, or previous value is still ..,
-                                    // keep them so that when converted to a path it may
-                                    // still work when converted to a path, even though
-                                    // as an ID it is less than ideal. In larger point
-                                    // releases, may be better to just kick out an error.
                                     if (i === 0 || (i === 1 && name[2] === '..') || name[i - 1] === '..') {
                                     } else if (i > 0) {
                                         name.splice(i - 1, 2);
@@ -96,8 +69,6 @@
                     function makeRelParts(relName) {
                         return relName ? splitPrefix(relName) : [];
                     }
-                    /**
-                     */
                     makeMap = function (name, relParts) {
                         var plugin,
                             parts = splitPrefix(name),
@@ -108,7 +79,7 @@
                             name = normalize(name, relResourceName);
                         }
                         return {
-                            f: prefix ? prefix + '!' + name : name, //fullName
+                            f: prefix ? prefix + '!' + name : name, 
                             n: name,
                             pr: prefix,
                             p: plugin
@@ -122,17 +93,12 @@
                         relName = relName || name;
                         relParts = makeRelParts(relName);
                         if (callbackType === 'undefined' || callbackType === 'function') {
-                            //Pull out the defined dependencies and pass the ordered
-                            //values to the callback.
-                            //Default to [require, exports, module] if no deps
                             for (i = 0; i < deps.length; i += 1) {
                                 map = makeMap(deps[i], relParts);
                                 depName = map.f;
                                 if (depName === "require") {
                                 } else if (depName === "exports") {
-                                    //CommonJS module spec 1.1
                                 } else if (depName === "module") {
-                                    //CommonJS module spec 1.1
                                 } else if (hasProp(defined, depName) ||
                                     hasProp(waiting, depName) ||
                                     hasProp(defining, depName)) {
@@ -143,30 +109,21 @@
                             }
                             ret = callback ? callback.apply(defined[name], args) : undefined;
                             if (name) {
-                                //If setting exports via "module" is in play,
-                                //favor that over return value and exports. After that,
-                                //favor a non-undefined return value over exports use.
                                 if (cjsModule && cjsModule.exports !== undef &&
                                     cjsModule.exports !== defined[name]) {
                                 } else if (ret !== undef || !usingExports) {
-                                    //Use the return value from the function.
                                     defined[name] = ret;
                                 }
                             }
                         } else if (name) {
-                            //May just be an object definition for the module. Only
-                            //worry about defining if have a module name.
                         }
                     };
                     requirejs = require = req = function (deps, callback, relName, forceSync, alt) {
                         if (typeof deps === "string") {
                             return callDep(makeMap(deps, makeRelParts(callback)).f);
                         } else if (!deps.splice) {
-                            //deps is a config object, not an array.
                         }
                     };
-                    /**
-                     */
                     define = function (name, deps, callback) {
                         if (!hasProp(defined, name) && !hasProp(waiting, name)) {
                             waiting[name] = [name, deps, callback];
@@ -220,7 +177,6 @@
                         SuperClass.prototype[superMethod];
                 }
                 var calledMethod = function (methodName) {
-                    // Stub out the original method if it's not decorating an actual method
                     var originalMethod = function () {
                     };
                     if (methodName in DecoratedClass.prototype) {
@@ -270,11 +226,6 @@
                 };
             };
             Utils.hasScroll = function (index, el) {
-                // Adapted from the function created by @ShadowScripter
-                // and adapted by @BillBarry on the Stack Exchange Code Review website.
-                // The original code can be found at
-                // http://codereview.stackexchange.com/q/13338
-                // and was designed to be used with the Sizzle selector engine.
                 var $el = $(el);
                 return ($el.innerHeight() < el.scrollHeight ||
                     $el.innerWidth() < el.scrollWidth);
@@ -291,8 +242,6 @@
                 });
             };
             Utils.appendMany = function ($element, $nodes) {
-                // jQuery 1.7.x does not support $.fn.append() with an array
-                // Fall back to a jQuery object collection using $.fn.add()
                 if ($.fn.jquery.substr(0, 3) === '1.7') {
                     var $jqNodes = $();
                     $.map($nodes, function (node) {
@@ -305,13 +254,8 @@
             Utils.__cache = {};
             var id = 0;
             Utils.GetUniqueElementId = function (element) {
-                // Get a unique element Id. If element has no id,
-                // creates a new unique number, stores it in the id
-                // attribute and returns the new id.
-                // If an id already exists, it simply returns it.
                 var select2Id = element.getAttribute('data-select2-id');
                 if (select2Id == null) {
-                    // If element has id, use it.
                     if (element.id) {
                         select2Id = element.id;
                         element.setAttribute('data-select2-id', select2Id);
@@ -323,8 +267,6 @@
                 return select2Id;
             };
             Utils.StoreData = function (element, name, value) {
-                // Stores an item in the cache for a specified element.
-                // name is the cache key.
                 var id = Utils.GetUniqueElementId(element);
                 if (!Utils.__cache[id]) {
                     Utils.__cache[id] = {};
@@ -332,16 +274,12 @@
                 Utils.__cache[id][name] = value;
             };
             Utils.GetData = function (element, name) {
-                // Retrieves a value from the cache by its key (name)
-                // name is optional. If no name specified, return
-                // all cache items for the specified element.
-                // and for a specified element.
                 var id = Utils.GetUniqueElementId(element);
                 if (name) {
                     if (Utils.__cache[id]) {
                         return Utils.__cache[id][name] != null ?
                             Utils.__cache[id][name] :
-                            $(element).data(name); // Fallback to HTML5 data attribs.
+                            $(element).data(name); 
                     }
                 } else {
                 }
@@ -388,11 +326,8 @@
                     .find('.select2-results__option[aria-selected]');
                 var $selected = $options.filter('[aria-selected=true]');
                 if ($selected.length > 0) {
-                    // If there are selected options, highlight the first
                     $selected.first().trigger('mouseenter');
                 } else {
-                    // If there are no selected options, highlight the first option
-                    // in the dropdown
                     $options.first().trigger('mouseenter');
                 }
             };
@@ -467,7 +402,6 @@
                     }
                 });
                 container.on('open', function () {
-                    // When the dropdown is open, aria-expended="true"
                     self.$results.attr('aria-expanded', 'true');
                     self.$results.attr('aria-hidden', 'false');
                 });
@@ -552,12 +486,10 @@
                     self.update(params.data);
                 });
                 container.on('open', function () {
-                    // When the dropdown is open, aria-expanded="true"
                     self.$selection.attr('aria-expanded', 'true');
                     self.$selection.attr('aria-owns', resultsId);
                 });
                 container.on('close', function () {
-                    // When the dropdown is closed, aria-expanded="false"
                     self.$selection.attr('aria-expanded', 'false');
                     self.$selection.removeAttr('aria-activedescendant');
                     self.$selection.removeAttr('aria-owns');
@@ -593,13 +525,13 @@
                 var self = this;
                 MultipleSelection.__super__.bind.apply(this, arguments);
                 this.$selection.on('click', function (evt) {
-                    self.trigger('toggle', {});
+                    self.trigger('toggle', {
+                    });
                 });
                 this.$selection.on(
                     'click',
                     '.select2-selection__choice__remove',
                     function (evt) {
-                        // Ignore the event if it is disabled
                         if (self.options.get('disabled')) {
                             return;
                         }
@@ -683,8 +615,6 @@
                     self.trigger('focus', evt);
                 });
             };
-            /**
-             */
             Search.prototype._transferTabIndex = function (decorated) {
                 this.$search.attr('tabindex', this.$selection.attr('tabindex'));
                 this.$selection.attr('tabindex', '-1');
@@ -805,7 +735,8 @@
                 return data;
             };
             SelectAdapter.prototype._normalizeItem = function (item) {
-                var defaults = {};
+                var defaults = {
+                };
                 if (item._resultId == null && item.id && this.container != null) {
                     item._resultId = this.generateResultId(this.container, item);
                 }
@@ -871,7 +802,6 @@
                 });
             };
             AttachBody.prototype.position = function (decorated, $dropdown, $container) {
-                // Clone all of the container classes
                 $dropdown.attr('class', $container.attr('class'));
                 $dropdown.removeClass('select2');
                 $dropdown.addClass('select2-container--open');
@@ -895,7 +825,8 @@
                 function (decorated, container) {
                     var $watchers = this.$container.parents().filter(Utils.hasScroll);
                     $watchers.each(function () {
-                        Utils.StoreData(this, 'select2-scroll-position', {});
+                        Utils.StoreData(this, 'select2-scroll-position', {
+                        });
                     });
                 };
             AttachBody.prototype._positionDropdown = function () {
@@ -948,7 +879,8 @@
                 });
             };
             CloseOnSelect.prototype._selectTriggered = function (_, evt) {
-                this.trigger('close', {});
+                this.trigger('close', {
+                });
             };
             return CloseOnSelect;
         });
@@ -1041,7 +973,6 @@
             };
             Defaults.prototype.reset = function () {
                 function matcher(params, data) {
-                    // Always return the object if there is nothing to compare
                     if ($.trim(params.term) === '') {
                         return data;
                     }
@@ -1233,8 +1164,6 @@
                     this.trigger('enable', {});
                 }
             };
-            /**
-             */
             Select2.prototype.toggleDropdown = function () {
                 if (this.isOpen()) {
                     this.close();
@@ -1252,7 +1181,6 @@
                 return this.$container.hasClass('select2-container--open');
             };
             Select2.prototype.focus = function (data) {
-                // No need to re-trigger focus events if we are already focused
                 this.$container.addClass('select2-container--focus');
             };
             Select2.prototype.render = function () {
@@ -1270,8 +1198,6 @@
             };
             return Select2;
         });
-        /*!
-        */
         S2.define('jquery.select2', [
             'jquery',
             'jquery-mousewheel',
@@ -1280,7 +1206,6 @@
             './select2/utils'
         ], function ($, _, Select2, Defaults, Utils) {
             if ($.fn.select2 == null) {
-                // All methods that should return the element
                 $.fn.select2 = function (options) {
                     options = options || {};
                     if (typeof options === 'object') {

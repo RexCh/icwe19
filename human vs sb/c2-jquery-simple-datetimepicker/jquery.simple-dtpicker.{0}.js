@@ -1,9 +1,3 @@
-/**
- * jquery-simple-datetimepicker (jquery.simple-dtpicker.js)
- * v1.13.0
- * (c) Masanori Ohgita.
- * https://github.com/mugifly/jquery-simple-datetimepicker
- **/
 (function ($) {
     var lang = {
         en: {
@@ -26,8 +20,6 @@
             format: "YYYY-MM-DD hh:mm",
         },
     };
-    /**
-     **/
     var PickerHandler = function ($picker, $input) {
         this.$pickerObject = $picker;
     };
@@ -111,16 +103,13 @@
             newdate.getMinutes()
         );
     };
-    /**
-     **/
     var getLastDate = function (year, month) {
     };
     var getDateFormat = function (format, locale, is_date_only, is_time_only) {
         if (format == "default") {
-            // Default format
             format = translate(locale, "format");
         }
-        return format; // Return date-format
+        return format; 
     };
     var parseDate = function (str, opt_date_format) {
         re = /^(\d{2,4})[-\/](\d{1,2})[-\/](\d{1,2}) (\d{1,2}):(\d{1,2})$/;
@@ -128,10 +117,8 @@
         if (m !== null) {
             date = new Date(m[1], m[2] - 1, m[3], m[4], m[5]);
         } else {
-            // Parse for date-only
         }
         if (isNaN(date) === false && isNaN(date.getDate()) === false) {
-            // Parse successful
             return date;
         }
     };
@@ -143,7 +130,7 @@
         var min = date.getMinutes();
         date_format = date_format
             .replace(/YYYY/gi, y)
-            .replace(/YY/g, y - 2000) /* century */
+            .replace(/YY/g, y - 2000) 
             .replace(/MM/g, zpadding(m))
             .replace(/M/g, m)
             .replace(/DD/g, zpadding(d))
@@ -185,7 +172,6 @@
         return num;
     };
     var draw_date = function ($picker, option, date) {
-        //console.log("draw_date - " + date.toString());
         draw(
             $picker,
             option,
@@ -303,7 +289,6 @@
             $td = $("<td>");
             $tr.append($td);
             if (firstWday > i) {
-                /* Before months day */
                 $td.text(beforeMonthLastDay + realDay);
                 $td.addClass("day_another_month");
                 $td.data(
@@ -315,14 +300,12 @@
                     (beforeMonthLastDay + realDay)
                 );
             } else if (i < firstWday + lastDay) {
-                /* Now months day */
                 $td.text(realDay);
                 $td.data(
                     "dateStr",
                     date.getFullYear() + "/" + (date.getMonth() + 1) + "/" + realDay
                 );
             } else {
-                /* Next months day */
                 $td.text(realDay - lastDay);
                 $td.addClass("day_another_month");
                 $td.data(
@@ -337,10 +320,8 @@
             var wday = (i + firstDayDiff) % 7;
             if (allowWdays != null) {
             } else if (wday === 0) {
-                /* Sunday */
                 $td.addClass("wday_sun");
             } else if (wday == 6) {
-                /* Saturday */
                 $td.addClass("wday_sat");
             }
             if (
@@ -348,19 +329,14 @@
                 shownDate.getMonth() == pickedDate.getMonth() &&
                 realDay == pickedDate.getDate()
             ) {
-                /* selected day */
                 $td.addClass("active");
             }
             if (
-                // compare to 23:59:59 on the current day (if MIN is 1pm, then we still need to show this day
                 (minDate != null && minDate > realDayObjMN.getTime()) ||
-                (maxDate != null && maxDate < realDayObj.getTime()) // compare to 00:00:00
+                (maxDate != null && maxDate < realDayObj.getTime()) 
             ) {
-                // Out of range day
             } else if (isFutureOnly && isPast) {
-                // Past day
             } else {
-                /* Set event-handler to day cell */
                 $td.click(function (ev) {
                     var targetDate = new Date($(this).data("dateStr"));
                     var selectedDate = getPickedDate($picker);
@@ -389,17 +365,14 @@
                     }
                 );
             }
-            /* ---- */
         }
         if (isOutputToInputObject === true) {
             outputToInputObject($picker);
         }
     };
     var isObj = function (type, obj) {
-        /* http://qiita.com/Layzie/items/465e715dae14e2f601de */
     };
     var init = function ($obj, opt) {
-        /* Container */
         var $picker = $("<div>");
         $picker.addClass("datepicker");
         $obj.append($picker);
@@ -471,8 +444,6 @@
             externalLocale: null
         };
     };
-    /**
-     */
     $.fn.dtpicker = function (config) {
         var defaults = getDefaults();
         var options = $.extend(defaults, config);
@@ -480,13 +451,10 @@
             init($(this), options);
         });
     };
-    /**
-     * */
     $.fn.appendDtpicker = function (config) {
         var defaults = getDefaults();
         var options = $.extend(defaults, config);
         return this.each(function (i) {
-            /* Checking exist a picker */
             var input = this;
             var inputObjectId = InputObjects.length;
             InputObjects.push(input);
@@ -496,26 +464,21 @@
             }
             var $d = $("<div>");
             if (options.inline) {
-                // Inline mode
                 $d.insertAfter(input);
             } else {
-                // Float mode
                 $("body").append($d);
             }
             var pickerId = PickerObjects.length;
-            var $picker_parent = $($d).dtpicker(options); // call dtpicker() method
+            var $picker_parent = $($d).dtpicker(options); 
             var $picker = $picker_parent.children(".datepicker");
             $(input).data("pickerId", pickerId);
             var handler = new PickerHandler($picker, $(input));
             if (options.inline === true) {
-                /* inline mode */
             } else {
-                /* float mode */
                 $picker.hide();
                 $(input).on("click, focus", function (ev) {
                     var is_showed = handler.isShow();
                     if (!is_showed) {
-                        // Show a picker
                         handler.show();
                     }
                 });
@@ -525,8 +488,6 @@
             });
         });
     };
-    /**
-     * */
     var methods = {
         hide: function () {
             var $input = $(this);

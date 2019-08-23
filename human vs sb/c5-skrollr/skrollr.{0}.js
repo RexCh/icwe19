@@ -26,12 +26,14 @@
         var requestAnimFrame = window.requestAnimationFrame || window[theCSSPrefix.toLowerCase() + 'RequestAnimationFrame'];
         return requestAnimFrame;
     };
-    var easings = {};
+    var easings = {
+    };
     function Skrollr(options) {
         documentElement = document.documentElement;
         body = document.body;
         _instance = this;
-        _listeners = {};
+        _listeners = {
+        };
         _forceHeight = options.forceHeight !== false;
         if (_isMobile) {
         } else {

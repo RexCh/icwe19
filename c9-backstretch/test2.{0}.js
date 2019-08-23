@@ -1,22 +1,10 @@
-/*
-* Backstretch
-* http://srobbin.com/jquery-plugins/backstretch/
-*
-* Copyright (c) 2013 Scott Robbin
-* Licensed under the MIT license.
-*/
 ;(function ($, window, undefined) {
-    /* PLUGIN DEFINITION
-    * ========================= */
     $.fn.backstretch = function (images, options) {
-        /*
-        */
         var returnValues;
         this.each(function (eachIndex) {
             var $this = $(this)
                 , obj = $this.data('backstretch');
             if (obj) {
-                // Is this a method they're trying to execute?
                 options = $.extend(obj.options, options);
             }
             obj = new Backstretch(this, images, options || {});
@@ -25,20 +13,15 @@
         return returnValues ? returnValues.length === 1 ? returnValues[0] : returnValues : this;
     };
     $.backstretch = function (images, options) {
-        // Return the instance
         return $('body')
             .backstretch(images, options)
             .data('backstretch');
     };
-    /* DEFAULTS
-    * ========================= */
     $.fn.backstretch.defaults = {
-        duration: 5000                // Amount of time in between slides (if slideshow)
-        , alignY: 0.5                 // The y-alignment for the image, can be 'top'|'center'|'bottom' or any number between 0.0 and 1.0
-        , start: 0                    // Index of the first image to show
+        duration: 5000                
+        , alignY: 0.5                 
+        , start: 0                    
     };
-    /* STYLES
-    * ========================= */
     var styles = {
         wrap: {
             left: 0
@@ -70,8 +53,6 @@
             , maxWidth: 'none'
         }
     };
-    /* Given an array of different options for an image,
-    */
     var isVideoSource = function (source) {
     };
     var processImagesArray = function (images) {
@@ -86,8 +67,6 @@
         return processed;
     };
     var processOptions = function (options, required) {
-        // Convert old options
-        // centeredX/centeredY are deprecated
         if (options.fade !== undefined) {
             options.transitionDuration = options.fade;
             options.transition = 'fade';
@@ -95,31 +74,20 @@
     };
     function validScale(scale) {
     }
-    /* CLASS DEFINITION
-    * ========================= */
     var Backstretch = function (container, images, options) {
         this.options = $.extend({}, $.fn.backstretch.defaults, options || {});
         processOptions(this.options, true);
-        /* In its simplest form, we allow Backstretch to be called on an image path.
-        */
         this.images = processImagesArray($.isArray(images) ? images : [images]);
-        /**
-         */
         this.isBody = container === document.body;
-        /* We're keeping track of a few different elements
-        */
         var $window = $(window);
         this.$container = $(container);
         this.$root = this.isBody ? supportsFixedPosition ? $window : $(document) : this.$container;
-        /**
-         */
         var $existing = this.$container.children(".backstretch").first();
         this.$wrap = $existing.length ? $existing :
             $('<div class="backstretch"></div>')
                 .css(this.options.bypassCss ? {} : styles.wrap)
                 .appendTo(this.$container);
         if (!this.options.bypassCss) {
-            // Non-body elements need some style adjustments
             this.$wrap.css({
                 position: this.isBody && supportsFixedPosition ? 'fixed' : 'absolute'
             });
@@ -138,12 +106,9 @@
                 });
         }
     };
-    /* PUBLIC METHODS
-    * ========================= */
     Backstretch.prototype = {
         resize: function () {
             try {
-                // Check for a better suited image after the resize
                 var bgCSS = {left: 0, top: 0, right: 'auto', bottom: 'auto'}
                     , boxWidth = this.isBody ? this.$root.width() : this.$root.innerWidth()
                     ,
@@ -155,7 +120,7 @@
                     , scale = validScale(this._currentImage.scale || this.options.scale);
                 if (scale === 'fit' || scale === 'fit-smaller') {
                 } else if (scale === 'fill') {
-                } else { // 'cover'
+                } else { 
                     width = Math.max(boxHeight * ratio, boxWidth);
                     height = Math.max(width / ratio, boxHeight);
                 }
@@ -173,12 +138,9 @@
                         });
                 }
             } catch (err) {
-                // IE7 seems to trigger resize before the image is loaded.
-                // This try/catch block is a hack to let it fail gracefully.
             }
         }
         , show: function (newIndex, overrideOptions) {
-            // Validate index
             var that = this
                 , $oldItemWrapper = that.$wrap.find('>.backstretch-item').addClass('deleteable')
                 , oldVideoWrapper = that.videoWrapper
@@ -213,13 +175,8 @@
                 var transitionDuration = getOption('transitionDuration');
                 var bringInNextImage = function () {
                     $oldItemWrapper.remove();
-                    // Resume the slideshow
-                    // Now we can clear the background on the element, to spare memory
-                    // Trigger the "after" and "show" events
-                    // "show" is being deprecated
                 };
                 if ((that.firstShow && !that.options.animateFirst) || !transitionDuration || !transition) {
-                    // Avoid transition on first show or if there's no transitionDuration value
                 } else {
                     performTransition({
                         'new': $wrapper,
@@ -238,12 +195,9 @@
             that._currentImage = selectedImage;
         }
     };
-    /**
-     * ========================= */
     var supportsFixedPosition = (function () {
         var ua = navigator.userAgent
             , platform = navigator.platform
-            // Rendering engine is Webkit, and capture major version
             , wkmatch = ua.match(/AppleWebKit\/([0-9]+)/)
             , wkversion = !!wkmatch && wkmatch[1]
             , ffmatch = ua.match(/Fennec\/([0-9]+)/)
@@ -253,20 +207,13 @@
             , iematch = ua.match(/MSIE ([0-9]+)/)
             , ieversion = !!iematch && iematch[1];
         return !(
-            // iOS 4.3 and older : Platform is iPhone/Pad/Touch and Webkit version is less than 534 (ios5)
             ((platform.indexOf("iPhone") > -1 || platform.indexOf("iPad") > -1 || platform.indexOf("iPod") > -1) && wkversion && wkversion < 534) ||
-            // Opera Mini
             (window.operamini && ({}).toString.call(window.operamini) === "[object OperaMini]") ||
             (operammobilematch && omversion < 7458) ||
-            //Android lte 2.1: Platform is Android and Webkit version is less than 533 (Android 2.2)
             (ua.indexOf("Android") > -1 && wkversion && wkversion < 533) ||
-            // Firefox Mobile before 6.0 -
             (ffversion && ffversion < 6) ||
-            // WebOS less than 3
             ("palmGetResource" in window && wkversion && wkversion < 534) ||
-            // MeeGo
             (ua.indexOf("MeeGo") > -1 && ua.indexOf("NokiaBrowser/8.5.0") > -1) ||
-            // IE6
             (ieversion && ieversion <= 6)
         );
     }());

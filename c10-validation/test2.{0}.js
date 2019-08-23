@@ -1,11 +1,3 @@
-/*!
-* jQuery Validation Plugin v1.17.1-pre
-*
-* https://jqueryvalidation.org/
-*
-* Copyright (c) 2018 Jörn Zaefferer
-* Released under the MIT license
-*/
 (function (factory) {
     if (typeof define === "function" && define.amd) {
     } else if (typeof module === "object" && module.exports) {
@@ -14,9 +6,7 @@
     }
 }(function ($) {
     $.extend($.fn, {
-        // https://jqueryvalidation.org/validate/
         validate: function (options) {
-            // If nothing is selected, return nothing; can't chain anyway
             this.attr("novalidate", "novalidate");
             validator = new $.validator(options, this[0]);
             $.data(this[0], "validator", validator);
@@ -90,7 +80,6 @@
                     groups = (this.groups = {}),
                     rules;
                 function delegate(event) {
-                    // Set form expando on contenteditable
                     var validator = $.data(this.form, "validator"),
                         eventType = "on" + event.type.replace(/^validate/, ""),
                         settings = validator.settings;
@@ -104,8 +93,6 @@
                         "[type='tel'], [type='url'], [type='email'], [type='datetime'], [type='date'], [type='month'], " +
                         "[type='week'], [type='time'], [type='datetime-local'], [type='range'], [type='color'], " +
                         "[type='radio'], [type='checkbox'], [contenteditable], [type='button']", delegate)
-                    // Support: Chrome, oldIE
-                    // "select" is provided as event.target when clicking a option
                     .on("click.validate", "select, option, [type='radio'], [type='checkbox']", delegate);
             },
             element: function (element) {
@@ -198,7 +185,6 @@
                 var message = this.findDefined(
                     this.customMessage(element.name, rule.method),
                     this.customDataMessage(element, rule.method),
-                    // 'title' is never undefined, so handle empty string as undefined
                     !this.settings.ignoreTitle && element.title || undefined,
                     $.validator.messages[rule.method],
                     "<strong>Warning: No message defined for " + element.name + "</strong>"
@@ -251,10 +237,8 @@
                     elementID = this.idOrName(element),
                     describedBy = $(element).attr("aria-describedby");
                 if (error.length) {
-                    // Refresh error/success class
                     error.html(message);
                 } else {
-                    // Create error element
                     error = $("<" + this.settings.errorElement + ">")
                         .attr("id", elementID + "-error")
                         .addClass(this.settings.errorClass)
@@ -266,10 +250,7 @@
                         place.insertAfter(element);
                     }
                     if (error.is("label")) {
-                        // If the error is a label, then associate using 'for'
                         error.attr("for", elementID);
-                        // If the element is not a child of an associated label, then it's necessary
-                        // to explicitly apply aria-describedby
                     } else if (error.parents("label[for='" + this.escapeCssMeta(elementID) + "']").length === 0) {
                     }
                 }
@@ -290,7 +271,6 @@
                 return this.groups[element.name] || (this.checkable(element) ? element.name : element.id || element.name);
             },
             validationTargetFor: function (element) {
-                // If radio/checkbox, validate first element in group instead
                 return $(element).not(this.settings.ignore)[0];
             },
             checkable: function (element) {
@@ -317,13 +297,9 @@
             return rules;
         },
         normalizeAttributeRule: function (rules, type, method, value) {
-            // Convert the value to a number for number inputs, and for text for backwards compability
-            // allows type="date" and others to be compared as strings
             if (value || value === 0) {
                 rules[method] = value;
             } else if (type === method && type !== "range") {
-                // Exception: the jquery validate 'range' method
-                // does not test for the html5 'range' type
             }
         },
         attributeRules: function (element) {
@@ -332,7 +308,6 @@
                 type = element.getAttribute("type"),
                 method, value;
             for (method in $.validator.methods) {
-                // Support for <input required> in both html5 and older browsers
                 if (method === "required") {
                 } else {
                     value = $element.attr(method);
@@ -346,16 +321,10 @@
         staticRules: function (element) {
         },
         normalizeRules: function (rules, element) {
-            // Handle dependency check
             return rules;
         },
         methods: {
-            // https://jqueryvalidation.org/required-method/
             email: function (value, element) {
-                // From https://html.spec.whatwg.org/multipage/forms.html#valid-e-mail-address
-                // Retrieved 2014-01-14
-                // If you have a problem with this implementation, report a bug against the above spec
-                // Or use custom methods to implement your own email validation
                 return this.optional(element) || /^[a-zA-Z0-9.!#$%&'*+\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/.test(value);
             },
             minlength: function (value, element, param) {
