@@ -1,23 +1,10 @@
 (function (window, document, undefined) {
-    'use strict';
     var skrollr = {
-        get: function () {
-            return _instance;
-        },
         init: function (options) {
             return _instance || new Skrollr(options);
         },
-        VERSION: '0.6.30'
     };
     var hasProp = Object.prototype.hasOwnProperty;
-    var Math = window.Math;
-    var getStyle = window.getComputedStyle;
-    var documentElement;
-    var body;
-    var EVENT_TOUCHSTART = 'touchstart';
-    var EVENT_TOUCHMOVE = 'touchmove';
-    var EVENT_TOUCHCANCEL = 'touchcancel';
-    var EVENT_TOUCHEND = 'touchend';
     var SKROLLABLE_CLASS = 'skrollable';
     var SKROLLABLE_BEFORE_CLASS = SKROLLABLE_CLASS + '-before';
     var SKROLLABLE_BETWEEN_CLASS = SKROLLABLE_CLASS + '-between';
@@ -26,263 +13,93 @@
     var NO_SKROLLR_CLASS = 'no-' + SKROLLR_CLASS;
     var SKROLLR_DESKTOP_CLASS = SKROLLR_CLASS + '-desktop';
     var DEFAULT_EASING = 'linear';
-    var DEFAULT_DURATION = 1000;
-    var DEFAULT_MOBILE_DECELERATION = 0.004;
-    var DEFAULT_SKROLLRBODY = 'skrollr-body';
-    var DEFAULT_SMOOTH_SCROLLING_DURATION = 200;
     var ANCHOR_START = 'start';
     var ANCHOR_END = 'end';
-    var ANCHOR_CENTER = 'center';
-    var ANCHOR_BOTTOM = 'bottom';
     var SKROLLABLE_ID_DOM_PROPERTY = '___skrollable_id';
-    var rxTouchIgnoreTags = /^(?:input|textarea|button|select)$/i;
     var rxTrim = /^\s+|\s+$/g;
     var rxKeyframeAttribute = /^data(?:-(_\w+))?(?:-?(-?\d*\.?\d+p?))?(?:-?(start|end|top|center|bottom))?(?:-?(top|center|bottom))?$/;
     var rxPropValue = /\s*(@?[\w\-\[\]]+)\s*:\s*(.+?)\s*(?:;|$)/gi;
     var rxPropEasing = /^(@?[a-z\-]+)\[(\w+)\]$/;
-    var rxCamelCase = /-([a-z0-9_])/g;
-    var rxCamelCaseFn = function (str, letter) {
-        return letter.toUpperCase();
-    };
     var rxNumericValue = /[\-+]?[\d]*\.?[\d]+/g;
     var rxInterpolateString = /\{\?\}/g;
-    var rxRGBAIntegerColor = /rgba?\(\s*-?\d+\s*,\s*-?\d+\s*,\s*-?\d+/g;
-    var rxGradient = /[a-z\-]+-gradient/g;
-    var theCSSPrefix = '';
-    var theDashedCSSPrefix = '';
-    var detectCSSPrefix = function () {
-        var rxPrefixes = /^(?:O|Moz|webkit|ms)|(?:-(?:o|moz|webkit|ms)-)/;
-        if (!getStyle) {
-            return;
-        }
-        var style = getStyle(body, null);
-        for (var k in style) {
-            theCSSPrefix = (k.match(rxPrefixes) || (+k == k && style[k].match(rxPrefixes)));
-            if (theCSSPrefix) {
-                break;
-            }
-        }
-        if (!theCSSPrefix) {
-            theCSSPrefix = theDashedCSSPrefix = '';
-            return;
-        }
-        theCSSPrefix = theCSSPrefix[0];
-        if (theCSSPrefix.slice(0, 1) === '-') {
-            theDashedCSSPrefix = theCSSPrefix;
-            theCSSPrefix = ({
-                '-webkit-': 'webkit',
-                '-moz-': 'Moz',
-                '-ms-': 'ms',
-                '-o-': 'O'
-            })[theCSSPrefix];
-        } else {
-            theDashedCSSPrefix = '-' + theCSSPrefix.toLowerCase() + '-';
-        }
-    };
     var polyfillRAF = function () {
         var requestAnimFrame = window.requestAnimationFrame || window[theCSSPrefix.toLowerCase() + 'RequestAnimationFrame'];
-        var lastTime = _now();
-        if (_isMobile || !requestAnimFrame) {
-            requestAnimFrame = function (callback) {
-                var deltaTime = _now() - lastTime;
-                var delay = Math.max(0, 1000 / 60 - deltaTime);
-                return window.setTimeout(function () {
-                    lastTime = _now();
-                    callback();
-                }, delay);
-            };
-        }
         return requestAnimFrame;
     };
-    var polyfillCAF = function () {
-        var cancelAnimFrame = window.cancelAnimationFrame || window[theCSSPrefix.toLowerCase() + 'CancelAnimationFrame'];
-        if (_isMobile || !cancelAnimFrame) {
-            cancelAnimFrame = function (timeout) {
-                return window.clearTimeout(timeout);
-            };
-        }
-        return cancelAnimFrame;
-    };
     var easings = {
-        begin: function () {
-            return 0;
-        },
-        end: function () {
-            return 1;
-        },
-        linear: function (p) {
-            return p;
-        },
-        quadratic: function (p) {
-            return p * p;
-        },
-        cubic: function (p) {
-            return p * p * p;
-        },
-        swing: function (p) {
-            return (-Math.cos(p * Math.PI) / 2) + 0.5;
-        },
-        sqrt: function (p) {
-            return Math.sqrt(p);
-        },
-        outCubic: function (p) {
-            return (Math.pow((p - 1), 3) + 1);
-        },
-        bounce: function (p) {
-            var a;
-            if (p <= 0.5083) {
-                a = 3;
-            } else if (p <= 0.8489) {
-                a = 9;
-            } else if (p <= 0.96208) {
-                a = 27;
-            } else if (p <= 0.99981) {
-                a = 91;
-            } else {
-                return 1;
-            }
-            return 1 - Math.abs(3 * Math.cos(p * a * 1.028) / a);
-        }
     };
     function Skrollr(options) {
         documentElement = document.documentElement;
         body = document.body;
-        detectCSSPrefix();
         _instance = this;
-        options = options || {};
-        _constants = options.constants || {};
-        _edgeStrategy = options.edgeStrategy || 'set';
         _listeners = {
-            beforerender: options.beforerender,
-            render: options.render,
-            keyframe: options.keyframe
         };
         _forceHeight = options.forceHeight !== false;
-        if (_forceHeight) {
-            _scale = options.scale || 1;
+        if (_isMobile) {
+        } else {
+            _updateClass(documentElement, [SKROLLR_CLASS, SKROLLR_DESKTOP_CLASS], [NO_SKROLLR_CLASS]);
         }
-        _smoothScrollingEnabled = options.smoothScrolling !== false;
-        _smoothScrollingDuration = options.smoothScrollingDuration || DEFAULT_SMOOTH_SCROLLING_DURATION;
-        _smoothScrolling = {
-            targetTop: _instance.getScrollTop()
-        };
         _instance.refresh();
-        _addEvent(window, 'resize orientationchange', function () {
-            var width = documentElement.clientWidth;
-            var height = documentElement.clientHeight;
-            if (height !== _lastViewportHeight || width !== _lastViewportWidth) {
-                _lastViewportHeight = height;
-                _lastViewportWidth = width;
-                _requestReflow = true;
-            }
-        });
         var requestAnimFrame = polyfillRAF();
         (function animloop() {
             _render();
             _animFrame = requestAnimFrame(animloop);
         }());
-        return _instance;
     }
     Skrollr.prototype.refresh = function (elements) {
-        var elementIndex;
-        var elementsLength;
-        var ignoreID = false;
         if (elements === undefined) {
             ignoreID = true;
             _skrollables = [];
             _skrollableIdCounter = 0;
             elements = document.getElementsByTagName('*');
+        } else if (elements.length === undefined) {
         }
         elementIndex = 0;
         elementsLength = elements.length;
         for (; elementIndex < elementsLength; elementIndex++) {
             var el = elements[elementIndex];
-            var anchorTarget = el;
             var keyFrames = [];
-            var smoothScrollThis = _smoothScrollingEnabled;
-            var edgeStrategy = _edgeStrategy;
-            var emitEvents = false;
             var attributeIndex = 0;
             var attributesLength = el.attributes.length;
             for (; attributeIndex < attributesLength; attributeIndex++) {
                 var attr = el.attributes[attributeIndex];
-                if (attr.name === 'data-anchor-target') {
-                    anchorTarget = document.querySelector(attr.value);
-                }
-                if (attr.name === 'data-smooth-scrolling') {
-                    smoothScrollThis = attr.value !== 'off';
-                    continue;
-                }
-                if (attr.name === 'data-edge-strategy') {
-                    edgeStrategy = attr.value;
-                    continue;
-                }
-                if (attr.name === 'data-emit-events') {
-                    emitEvents = true;
-                    continue;
-                }
                 var match = attr.name.match(rxKeyframeAttribute);
                 if (match === null) {
                     continue;
                 }
                 var kf = {
                     props: attr.value,
-                    element: el,
-                    eventType: attr.name.replace(rxCamelCase, rxCamelCaseFn)
                 };
                 keyFrames.push(kf);
-                var constant = match[1];
-                if (constant) {
-                    kf.constant = constant.substr(1);
-                }
                 var offset = match[2];
                 if (/p$/.test(offset)) {
-                    kf.isPercentage = true;
-                    kf.offset = (offset.slice(0, -1) | 0) / 100;
                 } else {
                     kf.offset = (offset | 0);
                 }
                 var anchor1 = match[3];
-                var anchor2 = match[4] || anchor1;
                 if (!anchor1 || anchor1 === ANCHOR_START || anchor1 === ANCHOR_END) {
-                    kf.mode = 'absolute';
                     if (anchor1 === ANCHOR_END) {
                         kf.isEnd = true;
                     } else if (!kf.isPercentage) {
-                        kf.offset = kf.offset * _scale;
                     }
+                } else {
                 }
             }
             if (!keyFrames.length) {
                 continue;
             }
-            var styleAttr, classAttr;
-            var id;
             if (!ignoreID && SKROLLABLE_ID_DOM_PROPERTY in el) {
-                id = el[SKROLLABLE_ID_DOM_PROPERTY];
-                styleAttr = _skrollables[id].styleAttr;
-                classAttr = _skrollables[id].classAttr;
             } else {
                 id = (el[SKROLLABLE_ID_DOM_PROPERTY] = _skrollableIdCounter++);
-                styleAttr = el.style.cssText;
-                classAttr = _getClass(el);
             }
             _skrollables[id] = {
                 element: el,
-                styleAttr: styleAttr,
-                classAttr: classAttr,
-                anchorTarget: anchorTarget,
                 keyFrames: keyFrames,
-                smoothScrolling: smoothScrollThis,
-                edgeStrategy: edgeStrategy,
-                emitEvents: emitEvents,
-                lastFrameIndex: -1
             };
             _updateClass(el, [SKROLLABLE_CLASS], []);
         }
         _reflow();
         elementIndex = 0;
-        elementsLength = elements.length;
         for (; elementIndex < elementsLength; elementIndex++) {
             var sk = _skrollables[elements[elementIndex][SKROLLABLE_ID_DOM_PROPERTY]];
             if (sk === undefined) {
@@ -291,44 +108,19 @@
             _parseProps(sk);
             _fillProps(sk);
         }
-        return _instance;
-    };
-    Skrollr.prototype.setScrollTop = function (top, force) {
-        _forceRender = (force === true);
-        if (_isMobile) {
-            _mobileOffset = Math.min(Math.max(top, 0), _maxKeyFrame);
-        } else {
-            window.scrollTo(0, top);
-        }
-        return _instance;
     };
     Skrollr.prototype.getScrollTop = function () {
         if (_isMobile) {
-            return _mobileOffset;
         } else {
             return window.pageYOffset || documentElement.scrollTop || body.scrollTop || 0;
         }
     };
     var _updateDependentKeyFrames = function () {
-        var viewportHeight = documentElement.clientHeight;
         var processedConstants = _processConstants();
-        var skrollable;
-        var element;
-        var anchorTarget;
-        var keyFrames;
-        var keyFrameIndex;
-        var keyFramesLength;
-        var kf;
-        var skrollableIndex;
-        var skrollablesLength;
-        var offset;
-        var constantValue;
         skrollableIndex = 0;
         skrollablesLength = _skrollables.length;
         for (; skrollableIndex < skrollablesLength; skrollableIndex++) {
             skrollable = _skrollables[skrollableIndex];
-            element = skrollable.element;
-            anchorTarget = skrollable.anchorTarget;
             keyFrames = skrollable.keyFrames;
             keyFrameIndex = 0;
             keyFramesLength = keyFrames.length;
@@ -337,11 +129,6 @@
                 offset = kf.offset;
                 constantValue = processedConstants[kf.constant] || 0;
                 kf.frame = offset;
-                if (kf.isPercentage) {
-                    offset = offset * viewportHeight;
-                    kf.frame = offset;
-                }
-                kf.frame += constantValue;
                 if (_forceHeight) {
                     if (!kf.isEnd && kf.frame > _maxKeyFrame) {
                         _maxKeyFrame = kf.frame;
@@ -349,27 +136,21 @@
                 }
             }
         }
-        _maxKeyFrame = Math.max(_maxKeyFrame, _getDocumentHeight());
         skrollableIndex = 0;
-        skrollablesLength = _skrollables.length;
         for (; skrollableIndex < skrollablesLength; skrollableIndex++) {
             skrollable = _skrollables[skrollableIndex];
             keyFrames = skrollable.keyFrames;
             keyFrameIndex = 0;
-            keyFramesLength = keyFrames.length;
             for (; keyFrameIndex < keyFramesLength; keyFrameIndex++) {
                 kf = keyFrames[keyFrameIndex];
-                constantValue = processedConstants[kf.constant] || 0;
                 if (kf.isEnd) {
                     kf.frame = _maxKeyFrame - kf.offset + constantValue;
                 }
             }
-            skrollable.keyFrames.sort(_keyFrameComparator);
         }
     };
     var _calcSteps = function (fakeFrame, actualFrame) {
         var skrollableIndex = 0;
-        var skrollablesLength = _skrollables.length;
         for (; skrollableIndex < skrollablesLength; skrollableIndex++) {
             var skrollable = _skrollables[skrollableIndex];
             var element = skrollable.element;
@@ -381,20 +162,12 @@
             var beforeFirst = frame < firstFrame.frame;
             var afterLast = frame > lastFrame.frame;
             var firstOrLastFrame = beforeFirst ? firstFrame : lastFrame;
-            var emitEvents = skrollable.emitEvents;
-            var lastFrameIndex = skrollable.lastFrameIndex;
-            var key;
-            var value;
             if (beforeFirst || afterLast) {
-                if (beforeFirst && skrollable.edge === -1 || afterLast && skrollable.edge === 1) {
-                    continue;
-                }
                 if (beforeFirst) {
                     _updateClass(element, [SKROLLABLE_BEFORE_CLASS], [SKROLLABLE_AFTER_CLASS, SKROLLABLE_BETWEEN_CLASS]);
                 } else {
                     _updateClass(element, [SKROLLABLE_AFTER_CLASS], [SKROLLABLE_BEFORE_CLASS, SKROLLABLE_BETWEEN_CLASS]);
                 }
-                skrollable.edge = beforeFirst ? -1 : 1;
                 switch (skrollable.edgeStrategy) {
                     default:
                     case 'set':
@@ -403,13 +176,15 @@
                             if (hasProp.call(props, key)) {
                                 value = _interpolateString(props[key].value);
                                 if (key.indexOf('@') === 0) {
-                                    element.setAttribute(key.substr(1), value);
                                 } else {
                                     skrollr.setStyle(element, key, value);
                                 }
                             }
                         }
-                        continue;
+                }
+            } else {
+                if (skrollable.edge !== 0) {
+                    _updateClass(element, [SKROLLABLE_CLASS, SKROLLABLE_BETWEEN_CLASS], [SKROLLABLE_BEFORE_CLASS, SKROLLABLE_AFTER_CLASS]);
                 }
             }
             var keyFrameIndex = 0;
@@ -420,101 +195,44 @@
                     for (key in left.props) {
                         if (hasProp.call(left.props, key)) {
                             var progress = (frame - left.frame) / (right.frame - left.frame);
-                            progress = left.props[key].easing(progress);
                             value = _calcInterpolation(left.props[key].value, right.props[key].value, progress);
                             value = _interpolateString(value);
                             if (key.indexOf('@') === 0) {
-                                element.setAttribute(key.substr(1), value);
                             } else {
                                 skrollr.setStyle(element, key, value);
                             }
                         }
                     }
-                    if (emitEvents) {
-                        if (lastFrameIndex !== keyFrameIndex) {
-                            if (_direction === 'down') {
-                                _emitEvent(element, left.eventType, _direction);
-                            } else {
-                                _emitEvent(element, right.eventType, _direction);
-                            }
-                            skrollable.lastFrameIndex = keyFrameIndex;
-                        }
-                    }
-                    break;
                 }
             }
         }
     };
     var _render = function () {
-        if (_requestReflow) {
-            _requestReflow = false;
-            _reflow();
-        }
         var renderTop = _instance.getScrollTop();
-        var afterAnimationCallback;
-        var now = _now();
-        var progress;
-        if (_scrollAnimation) {
-            if (now >= _scrollAnimation.endTime) {
-                renderTop = _scrollAnimation.targetTop;
-                afterAnimationCallback = _scrollAnimation.done;
-                _scrollAnimation = undefined;
-            } else {
-                progress = _scrollAnimation.easing((now - _scrollAnimation.startTime) / _scrollAnimation.duration);
-                renderTop = (_scrollAnimation.startTop + progress * _scrollAnimation.topDiff) | 0;
-            }
-            _instance.setScrollTop(renderTop, true);
-        }
         if (_forceRender || _lastTop !== renderTop) {
-            _direction = (renderTop > _lastTop) ? 'down' : (renderTop < _lastTop ? 'up' : _direction);
-            _forceRender = false;
-            var listenerParams = {
-                curTop: renderTop,
-                lastTop: _lastTop,
-                maxTop: _maxKeyFrame,
-                direction: _direction
-            };
             var continueRendering = _listeners.beforerender && _listeners.beforerender.call(_instance, listenerParams);
             if (continueRendering !== false) {
                 _calcSteps(renderTop, _instance.getScrollTop());
-                if (_isMobile && _skrollrBody) {
-                    skrollr.setStyle(_skrollrBody, 'transform', 'translate(0, ' + -(_mobileOffset) + 'px) ' + _translateZ);
-                }
-                _lastTop = renderTop;
-                if (_listeners.render) {
-                    _listeners.render.call(_instance, listenerParams);
-                }
-            }
-            if (afterAnimationCallback) {
-                afterAnimationCallback.call(_instance, false);
             }
         }
-        _lastRenderCall = now;
     };
     var _parseProps = function (skrollable) {
         var keyFrameIndex = 0;
         var keyFramesLength = skrollable.keyFrames.length;
         for (; keyFrameIndex < keyFramesLength; keyFrameIndex++) {
             var frame = skrollable.keyFrames[keyFrameIndex];
-            var easing;
-            var value;
-            var prop;
             var props = {};
-            var match;
             while ((match = rxPropValue.exec(frame.props)) !== null) {
                 prop = match[1];
                 value = match[2];
                 easing = prop.match(rxPropEasing);
                 if (easing !== null) {
                     prop = easing[1];
-                    easing = easing[2];
                 } else {
-                    easing = DEFAULT_EASING;
                 }
                 value = value.indexOf('!') ? _parseProp(value) : [value.slice(1)];
                 props[prop] = {
                     value: value,
-                    easing: easings[easing]
                 };
             }
             frame.props = props;
@@ -522,18 +240,6 @@
     };
     var _parseProp = function (val) {
         var numbers = [];
-        rxRGBAIntegerColor.lastIndex = 0;
-        val = val.replace(rxRGBAIntegerColor, function (rgba) {
-            return rgba.replace(rxNumericValue, function (n) {
-                return n / 255 * 100 + '%';
-            });
-        });
-        if (theDashedCSSPrefix) {
-            rxGradient.lastIndex = 0;
-            val = val.replace(rxGradient, function (s) {
-                return theDashedCSSPrefix + s;
-            });
-        }
         val = val.replace(rxNumericValue, function (n) {
             numbers.push(+n);
             return '{?}';
@@ -543,8 +249,6 @@
     };
     var _fillProps = function (sk) {
         var propList = {};
-        var keyFrameIndex;
-        var keyFramesLength;
         keyFrameIndex = 0;
         keyFramesLength = sk.keyFrames.length;
         for (; keyFrameIndex < keyFramesLength; keyFrameIndex++) {
@@ -557,7 +261,6 @@
         }
     };
     var _fillPropForFrame = function (frame, propList) {
-        var key;
         for (key in propList) {
             if (!hasProp.call(frame.props, key)) {
                 frame.props[key] = propList[key];
@@ -568,7 +271,6 @@
         }
     };
     var _calcInterpolation = function (val1, val2, progress) {
-        var valueIndex;
         var val1Length = val1.length;
         var interpolated = [val1[0]];
         valueIndex = 1;
@@ -579,153 +281,35 @@
     };
     var _interpolateString = function (val) {
         var valueIndex = 1;
-        rxInterpolateString.lastIndex = 0;
         return val[0].replace(rxInterpolateString, function () {
             return val[valueIndex++];
         });
     };
     skrollr.setStyle = function (el, prop, val) {
         var style = el.style;
-        prop = prop.replace(rxCamelCase, rxCamelCaseFn).replace('-', '');
         if (prop === 'zIndex') {
-            if (isNaN(val)) {
-                style[prop] = val;
-            } else {
-                style[prop] = '' + (val | 0);
-            }
-        }
-        else if (prop === 'float') {
-            style.styleFloat = style.cssFloat = val;
-        }
-        else {
+        } else if (prop === 'float') {
+        } else {
             try {
-                if (theCSSPrefix) {
-                    style[theCSSPrefix + prop.slice(0, 1).toUpperCase() + prop.slice(1)] = val;
-                }
                 style[prop] = val;
-            } catch (ignore) { }
-        }
-    };
-    var _addEvent = skrollr.addEvent = function (element, names, callback) {
-        var intermediate = function (e) {
-            e = e || window.event;
-            if (!e.target) {
-                e.target = e.srcElement;
+            } catch (ignore) {
             }
-            if (!e.preventDefault) {
-                e.preventDefault = function () {
-                    e.returnValue = false;
-                    e.defaultPrevented = true;
-                };
-            }
-            return callback.call(this, e);
-        };
-        names = names.split(' ');
-        var name;
-        var nameCounter = 0;
-        var namesLength = names.length;
-        for (; nameCounter < namesLength; nameCounter++) {
-            name = names[nameCounter];
-            if (element.addEventListener) {
-                element.addEventListener(name, callback, false);
-            } else {
-                element.attachEvent('on' + name, intermediate);
-            }
-            _registeredEvents.push({
-                element: element,
-                name: name,
-                listener: callback
-            });
-        }
-    };
-    var _removeEvent = skrollr.removeEvent = function (element, names, callback) {
-        names = names.split(' ');
-        var nameCounter = 0;
-        var namesLength = names.length;
-        for (; nameCounter < namesLength; nameCounter++) {
-            if (element.removeEventListener) {
-                element.removeEventListener(names[nameCounter], callback, false);
-            } else {
-                element.detachEvent('on' + names[nameCounter], callback);
-            }
-        }
-    };
-    var _removeAllEvents = function () {
-        var eventData;
-        var eventCounter = 0;
-        var eventsLength = _registeredEvents.length;
-        for (; eventCounter < eventsLength; eventCounter++) {
-            eventData = _registeredEvents[eventCounter];
-            _removeEvent(eventData.element, eventData.name, eventData.listener);
-        }
-        _registeredEvents = [];
-    };
-    var _emitEvent = function (element, name, direction) {
-        if (_listeners.keyframe) {
-            _listeners.keyframe.call(_instance, element, name, direction);
         }
     };
     var _reflow = function () {
-        var pos = _instance.getScrollTop();
         _maxKeyFrame = 0;
-        if (_forceHeight && !_isMobile) {
-            body.style.height = '';
-        }
         _updateDependentKeyFrames();
         if (_forceHeight && !_isMobile) {
             body.style.height = (_maxKeyFrame + documentElement.clientHeight) + 'px';
         }
-        if (_isMobile) {
-            _instance.setScrollTop(Math.min(_instance.getScrollTop(), _maxKeyFrame));
-        } else {
-            _instance.setScrollTop(pos, true);
-        }
         _forceRender = true;
     };
     var _processConstants = function () {
-        var viewportHeight = documentElement.clientHeight;
         var copy = {};
-        var prop;
-        var value;
-        for (prop in _constants) {
-            value = _constants[prop];
-            if (typeof value === 'function') {
-                value = value.call(_instance);
-            }
-            else if ((/p$/).test(value)) {
-                value = (value.slice(0, -1) / 100) * viewportHeight;
-            }
-            copy[prop] = value;
-        }
         return copy;
-    };
-    var _getDocumentHeight = function () {
-        var skrollrBodyHeight = 0;
-        var bodyHeight;
-        if (_skrollrBody) {
-            skrollrBodyHeight = Math.max(_skrollrBody.offsetHeight, _skrollrBody.scrollHeight);
-        }
-        bodyHeight = Math.max(skrollrBodyHeight, body.scrollHeight, body.offsetHeight, documentElement.scrollHeight, documentElement.offsetHeight, documentElement.clientHeight);
-        return bodyHeight - documentElement.clientHeight;
-    };
-    var _getClass = function (element) {
-        var prop = 'className';
-        if (window.SVGElement && element instanceof window.SVGElement) {
-            element = element[prop];
-            prop = 'baseVal';
-        }
-        return element[prop];
     };
     var _updateClass = function (element, add, remove) {
         var prop = 'className';
-        if (window.SVGElement && element instanceof window.SVGElement) {
-            element = element[prop];
-            prop = 'baseVal';
-        }
-        if (remove === undefined) {
-            element[prop] = add;
-            return;
-        }
         var val = element[prop];
         var classRemoveIndex = 0;
         var removeLength = remove.length;
@@ -748,39 +332,8 @@
     var _untrim = function (a) {
         return ' ' + a + ' ';
     };
-    var _now = Date.now || function () {
-        return +new Date();
-    };
-    var _keyFrameComparator = function (a, b) {
-        return a.frame - b.frame;
-    };
     var _instance;
-    var _skrollables;
-    var _skrollrBody;
-    var _listeners;
-    var _forceHeight;
-    var _maxKeyFrame = 0;
-    var _scale = 1;
-    var _constants;
-    var _mobileDeceleration;
-    var _direction = 'down';
-    var _lastTop = -1;
-    var _lastRenderCall = _now();
-    var _lastViewportWidth = 0;
-    var _lastViewportHeight = 0;
-    var _requestReflow = false;
-    var _scrollAnimation;
-    var _smoothScrollingEnabled;
-    var _smoothScrollingDuration;
-    var _smoothScrolling;
-    var _forceRender;
-    var _skrollableIdCounter = 0;
-    var _edgeStrategy;
     var _isMobile = false;
-    var _mobileOffset = 0;
-    var _translateZ;
-    var _registeredEvents = [];
-    var _animFrame;
     if (typeof define === 'function' && define.amd) {
         define([], function () {
             return skrollr;
